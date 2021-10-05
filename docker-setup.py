@@ -3,6 +3,7 @@ import shlex
 import subprocess
 import sys
 
+
 config = {
     "noCommands": False,
     "noConfirm": False
@@ -19,7 +20,7 @@ def confirmation(prompt: str = "Confirm? ") -> bool:
     return input(prompt).strip().lower() in ["yes", "y", "ja", "j"]
 
 
-def build_command(docker_cmd: str, name: str, environment_vars: dict, volumes: dict, ports: dict, image: str) -> list:
+def build_container_command(docker_cmd: str, name: str, environment_vars: dict, volumes: dict, ports: dict, image: str) -> list:
     command = [docker_cmd, "run", "--name", name, "-d"]
     for key, val in environment_vars.items():
         command.append("-e")
@@ -79,10 +80,7 @@ def prompt_arguments(argument_config: dict) -> dict:
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <template-name> [OPTIONS]")
-        print("Options:")
-        print("  --dry, -s           Don't execute commands")
-        print("  --no-confirm, -y    Execute commands without confirmation")
+        print(f"Usage: {sys.argv[0]} <template-name> [OPTIONS]\nOptions:\n  --dry, -s           Don't execute commands\n  --no-confirm, -y    Execute commands without confirmation")
         return 1
 
     for arg in sys.argv[2:]:
@@ -105,17 +103,19 @@ def main() -> int:
     template = data[template_name]
 
     arguments = prompt_arguments(template.get("arguments", {}))
+    print()
     volumes = format_string_dict(template.get("volumes", {}), values=False, **arguments)
     environment_vars = format_string_dict(template.get("environment", {}), keys=False, **arguments)
     ports = format_string_dict(template.get("ports", {}), **arguments)
+
     name = template["name"].format(**arguments)
     image = template["image"]
 
     for volume in volumes:
-        run_command([docker_cmd, "volume", "create", volume], f"Create Volume {volume}? ")
-
-    cmd = build_command(docker_cmd, name, environment_vars, volumes, ports, image)
-    run_command(cmd, f"Create Container {name}? ")
+        run_command([docker_cmd, "volume", "create", volume], f"Create volume {volume}? [y/n] ")
+    print()
+    cmd = build_container_command(docker_cmd, name, environment_vars, volumes, ports, image)
+    run_command(cmd, f"Create container {name}? [y/n] ")
     return 0
 
 
