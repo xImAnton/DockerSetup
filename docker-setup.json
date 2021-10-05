@@ -1,0 +1,64 @@
+{
+  "$docker_cmd": "docker",
+  "mongo": {
+    "arguments": {
+      "name": "container name",
+      "root_username": {
+        "description": "root username",
+        "default": "root"
+      },
+      "root_password": {
+        "description": "root password",
+        "default": "pw"
+      },
+      "port": {
+        "default": "27017"
+      },
+      "database_name": {
+        "description": "database name",
+        "default": "{name}"
+      }
+    },
+    "image": "mongo",
+    "name": "{name}-mongo",
+    "volumes": {
+      "{name}-volume": "/data/db"
+    },
+    "ports": {
+      "{port}": "27017"
+    },
+    "environment": {
+      "MONGO_INITDB_ROOT_USERNAME": "{root_username}",
+      "MONGO_INITDB_ROOT_PASSWORD": "{root_password}",
+      "MONGO_INITDB_DATABASE": "{database_name}"
+    }
+  },
+  "mysql": {
+    "arguments": {
+      "name": "container name",
+      "root_password": {
+        "description": "root password",
+        "default": "pw"
+      },
+      "port": {
+        "default": "3306"
+      },
+      "database_name": {
+        "description": "database name",
+        "default": "{name}"
+      }
+    },
+    "image": "mysql",
+    "name": "{name}-mysql",
+    "volumes": {
+      "{name}-volume": "/var/lib/mysql"
+    },
+    "ports": {
+      "{port}": "3306"
+    },
+    "environment": {
+      "MYSQL_ROOT_PASSWORD": "{root_password}",
+      "MYSQL_DATABASE": "{database_name}"
+    }
+  }
+}
