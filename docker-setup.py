@@ -2,97 +2,53 @@ import json
 import shlex
 import subprocess
 import sys
+from util import confirmation, build_container_command, format_string_dict, prompt_arguments
 
 
-config = {
-    "noCommands": False,
-    "noConfirm": False
+_config = {
+    "no_commands": False,
+    "no_confirm": False,
+    "list_and_exit": False
 }
 
 
 def run_command(cmd: list, confirm_prompt: str):
     print("> " + shlex.join(cmd))
-    if not config["noCommands"] and (config["noConfirm"] or confirmation(confirm_prompt)):
+    if not _config["no_commands"] and (_config["no_confirm"] or confirmation(confirm_prompt)):
         subprocess.call(cmd)
 
 
-def confirmation(prompt: str = "Confirm? ") -> bool:
-    return input(prompt).strip().lower() in ["yes", "y", "ja", "j"]
-
-
-def build_container_command(docker_cmd: str, name: str, environment_vars: dict, volumes: dict, ports: dict, image: str) -> list:
-    command = [docker_cmd, "run", "--name", name, "-d"]
-    for key, val in environment_vars.items():
-        command.append("-e")
-        command.append(f"{key}={val}")
-
-    for name, mnt in volumes.items():
-        command.append("-v")
-        command.append(f"{name}:{mnt}")
-
-    for host, cont in ports.items():
-        command.append("-p")
-        command.append(f"{host}:{cont}")
-
-    command.append(image)
-    return command
-
-
-def format_string_dict(d: dict, keys: bool = True, values: bool = True, **formats) -> dict:
-    out = {}
-    for key, val in d.items():
-        if keys:
-            key = key.format(**formats)
-        if values:
-            val = val.format(**formats)
-        out[key] = val
-    return out
-
-
-def prompt_arguments(argument_config: dict) -> dict:
-    arguments = {}
-    for arg, data in argument_config.items():
-        key = arg
-        desc = None
-        default = None
-
-        if isinstance(data, str):
-            desc = data
-        if isinstance(data, dict):
-            key = data.get("placeholder", arg)
-            desc = data.get("description", None)
-            default = data.get("default", None)
-
-        prompt = desc or key
-        prompt += ": "
-        if default:
-            prompt += f"({default}) "
-
-        do = True
-        while do:
-            value = input(prompt.format(**arguments)).strip()
-            if value == "" and default is not None:
-                value = default.format(**arguments)
-            do = value == ""
-        arguments[arg] = value
-    return arguments
+usage_info = f"Usage: {sys.argv[0]} <template-name> [OPTIONS]\nOptions:\n  --dry, -s           Don't execute commands\n  --no-confirm, -y    Execute commands without confirmation"
 
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <template-name> [OPTIONS]\nOptions:\n  --dry, -s           Don't execute commands\n  --no-confirm, -y    Execute commands without confirmation")
+        print(usage_info)
         return 1
 
-    for arg in sys.argv[2:]:
-        if arg in ["--dry", "-s"]:
-            config["noCommands"] = True
-        elif arg in ["--no-confirm", "-y"]:
-            config["noConfirm"] = True
+    template_name = None
 
-    template_name = sys.argv[1]
+    for arg in sys.argv[1:]:
+        if not arg.startswith("-"):
+            template_name = arg
+        if arg in ["--dry", "-s"]:
+            _config["no_commands"] = True
+        elif arg in ["--no-confirm", "-y"]:
+            _config["no_confirm"] = True
+        elif arg in ["-l", "--list"]:
+            _config["list_and_exit"] = True
 
     with open("docker-setup.json") as f:
         data = json.loads(f.read())
+
+    if _config["list_and_exit"]:
+        templates = {t for t in data.keys() if not t.startswith("$")}
+        print("\n".join(templates))
+        return 0
+
+    if template_name is None:
+        print(usage_info)
+        return 1
 
     docker_cmd = data.get("$docker_cmd", "docker")
 
@@ -103,7 +59,7 @@ def main() -> int:
     template = data[template_name]
 
     arguments = prompt_arguments(template.get("arguments", {}))
-    print()
+    print("")
     volumes = format_string_dict(template.get("volumes", {}), values=False, **arguments)
     environment_vars = format_string_dict(template.get("environment", {}), keys=False, **arguments)
     ports = format_string_dict(template.get("ports", {}), **arguments)
@@ -113,7 +69,7 @@ def main() -> int:
 
     for volume in volumes:
         run_command([docker_cmd, "volume", "create", volume], f"Create volume {volume}? [y/n] ")
-    print()
+    print("")
     cmd = build_container_command(docker_cmd, name, environment_vars, volumes, ports, image)
     run_command(cmd, f"Create container {name}? [y/n] ")
     return 0
@@ -121,6 +77,7 @@ def main() -> int:
 
 if __name__ == '__main__':
     code = 1
+
     try:
         code = main()
     except KeyboardInterrupt:
@@ -128,6 +85,7 @@ if __name__ == '__main__':
     except KeyError as e:
         print(f"error getting config key: {e.args[0]}")
         code = 1
+
     if code == 0:
         print("\nThank you for using docker-setup.py")
-    exit(code)
+    sys.exit(code)
