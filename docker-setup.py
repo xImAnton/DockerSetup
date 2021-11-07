@@ -18,7 +18,12 @@ def run_command(cmd: list, confirm_prompt: str):
         subprocess.call(cmd)
 
 
-usage_info = f"Usage: {sys.argv[0]} <template-name> [OPTIONS]\nOptions:\n  --dry, -s           Don't execute commands\n  --no-confirm, -y    Execute commands without confirmation"
+usage_info = f"""Usage: {sys.argv[0]} <template-name> [OPTIONS]
+Options:
+  --dry, -s           Don't execute commands
+  --no-confirm, -y    Execute commands without confirmation
+  --list, -l          When no template name is specified, list the container names, otherwise list the arguments of the container
+  -A<argument>        Set an argument for the template. An argument isn't queried interactive, when specified"""
 
 
 def main() -> int:
@@ -28,7 +33,16 @@ def main() -> int:
 
     template_name = None
 
-    for arg in sys.argv[1:]:
+    cli_arguments = {}
+    next_is_argument = False
+
+    for i, arg in enumerate(sys.argv[1:]):
+        if next_is_argument:
+            next_is_argument = False
+            data = arg.split("=")
+            # handle IndexError
+            cli_arguments[data[0].lower()] = data[1]
+            continue
         if not arg.startswith("-"):
             template_name = arg
         if arg in ["--dry", "-s"]:
@@ -37,13 +51,24 @@ def main() -> int:
             _config["no_confirm"] = True
         elif arg in ["-l", "--list"]:
             _config["list_and_exit"] = True
+        elif arg.startswith("-A"):
+            if len(arg) > 2:
+                data = arg[2:].split("=")
+                # handle IndexError
+                cli_arguments[data[0]] = data[1]
+            else:
+                next_is_argument = True
 
     with open("docker-setup.json") as f:
         data = json.loads(f.read())
 
     if _config["list_and_exit"]:
-        templates = {t for t in data.keys() if not t.startswith("$")}
-        print("\n".join(templates))
+        if template_name in data:
+            slots = data[template_name].get("arguments", {})
+            print("\n".join(slots.keys()))
+        else:
+            templates = {t for t in data.keys() if not t.startswith("$")}
+            print("\n".join(templates))
         return 0
 
     if template_name is None:
@@ -58,7 +83,7 @@ def main() -> int:
 
     template = data[template_name]
 
-    arguments = prompt_arguments(template.get("arguments", {}))
+    arguments = prompt_arguments(template.get("arguments", {}), cli_arguments)
     print("")
     volumes = format_string_dict(template.get("volumes", {}), values=False, **arguments)
     environment_vars = format_string_dict(template.get("environment", {}), keys=False, **arguments)
@@ -72,6 +97,7 @@ def main() -> int:
     print("")
     cmd = build_container_command(docker_cmd, name, environment_vars, volumes, ports, image)
     run_command(cmd, f"Create container {name}? [y/n] ")
+    print("\nThank you for using docker-setup.py")
     return 0
 
 
@@ -86,6 +112,4 @@ if __name__ == '__main__':
         print(f"error getting config key: {e.args[0]}")
         code = 1
 
-    if code == 0:
-        print("\nThank you for using docker-setup.py")
     sys.exit(code)

@@ -1,17 +1,17 @@
 # Docker-Setup.py
 Create Docker Containers from simple templates
 
-## Why?
+## Reason for this project
 Everytime I need a database in my projects, I need to create a new docker container and for that, 
-lookup all the config values that are needed for this specific database. With this script, you can set up
-the template for a specific database container once and instantiate them later, without having to remember
+lookup all the config values that are needed for this specific database. With this script, you can create
+a template for a specific database container once and instantiate them later, without having to remember
 all the environment variables and volume mountpoints.
 
 ## How does it work?
 Every template has arguments that are prompted at the beginning.
 These can have default values and a description to show to the user.
 
-After that these arguments are inserted into volume names, environment variables, the container name,
+After that, these arguments are inserted into volume names, environment variables, the container name,
 ports and the defaults of other arguments.
 All these values are merged into a single `docker run` command and
 needed volumes are created automatically.
@@ -73,4 +73,4 @@ the keys (volume names).
 
 ## Contributing
 The default config contains setup flows for MongoDB and MySQL.
-Feel free to add configs for other container types.
+Feel free to add configs for other container types or make modifications to the script!

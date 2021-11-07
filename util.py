@@ -31,9 +31,13 @@ def format_string_dict(d: dict, keys: bool = True, values: bool = True, **format
     return out
 
 
-def prompt_arguments(argument_config: dict) -> dict:
+def prompt_arguments(argument_config: dict, cli_args: dict) -> dict:
     arguments = {}
     for arg, data in argument_config.items():
+        if arg in cli_args:
+            arguments[arg] = cli_args[arg]
+            continue
+
         key = arg
         desc = None
         default = None
