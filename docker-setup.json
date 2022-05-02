@@ -82,7 +82,7 @@
     "image": "rabbitmq:3",
     "name": "{name}-rabbit",
     "ports": {
-      "{port}": "3306"
+      "{port}": "5672"
     },
     "environment": {
       "RABBITMQ_DEFAULT_USER": "{root_account_name}",
