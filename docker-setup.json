@@ -60,5 +60,34 @@
       "MYSQL_ROOT_PASSWORD": "{root_password}",
       "MYSQL_DATABASE": "{database_name}"
     }
+  },
+  "rabbitmq": {
+    "arguments": {
+      "name": "container name",
+      "root_account_name": {
+        "default": "root",
+        "description": "root account name"
+      },
+      "root_password": {
+        "description": "root password",
+        "default": "pw"
+      },
+      "port": {
+        "default": "5672"
+      },
+      "hostname": {
+        "default": "{name}"
+      }
+    },
+    "image": "rabbitmq:3",
+    "name": "{name}-rabbit",
+    "ports": {
+      "{port}": "3306"
+    },
+    "environment": {
+      "RABBITMQ_DEFAULT_USER": "{root_account_name}",
+      "RABBITMQ_DEFAULT_PASS": "{root_password}"
+    },
+    "hostname": "{hostname}"
   }
 }

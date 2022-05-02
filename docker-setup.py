@@ -89,13 +89,14 @@ def main() -> int:
     environment_vars = format_string_dict(template.get("environment", {}), keys=False, **arguments)
     ports = format_string_dict(template.get("ports", {}), **arguments)
 
+    hostname = template.get("hostname", "").format(**arguments)
     name = template["name"].format(**arguments)
     image = template["image"]
 
     for volume in volumes:
         run_command([docker_cmd, "volume", "create", volume], f"Create volume {volume}? [y/n] ")
     print("")
-    cmd = build_container_command(docker_cmd, name, environment_vars, volumes, ports, image)
+    cmd = build_container_command(docker_cmd, name, environment_vars, volumes, ports, image, hostname)
     run_command(cmd, f"Create container {name}? [y/n] ")
     print("\nThank you for using docker-setup.py")
     return 0

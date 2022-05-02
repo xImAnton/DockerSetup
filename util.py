@@ -1,8 +1,11 @@
+from typing import Optional
+
+
 def confirmation(prompt: str = "Confirm? ") -> bool:
     return input(prompt).strip().lower() in ["yes", "y", "ja", "j"]
 
 
-def build_container_command(docker_cmd: str, name: str, environment_vars: dict, volumes: dict, ports: dict, image: str) -> list:
+def build_container_command(docker_cmd: str, name: str, environment_vars: dict, volumes: dict, ports: dict, image: str, hostname: Optional[str]) -> list:
     command = [docker_cmd, "run", "--name", name, "-d"]
     for key, val in environment_vars.items():
         command.append("-e")
@@ -15,6 +18,10 @@ def build_container_command(docker_cmd: str, name: str, environment_vars: dict, 
     for host, cont in ports.items():
         command.append("-p")
         command.append(f"{host}:{cont}")
+
+    if hostname:
+        command.append("--hostname")
+        command.append(hostname)
 
     command.append(image)
     return command
